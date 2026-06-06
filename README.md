@@ -2,56 +2,56 @@
 
 ![Nebula Courier Cover](cover_nebula_courier_round_tunnel.png)
 
-(The entire game, including this readme file, is AI generated.)
+(The entire game, including this README file, is AI-generated.)
 
-Nebula Courier ist ein kleines 3D-Arcade-Spiel in Python. Du fliegst mit einem Raumschiff durch einen runden Sci-Fi-Tunnel, der entlang einer Kreisbahn verlaeuft. Dabei sammelst du Kristalle, weichst Asteroiden aus und nutzt Boost, um schneller durch den Tunnel zu kommen.
+Nebula Courier is a small 3D arcade game written in Python. You fly a spaceship through a round sci-fi tunnel that follows a circular path. Along the way, you collect crystals, dodge asteroids, and use boost to move faster through the tunnel.
 
-Das Spiel kommt ohne externe Python-Abhaengigkeiten aus. Es nutzt `tkinter`, das bei normalen Python-Installationen enthalten ist.
+The game has no external Python dependencies. It uses `tkinter`, which is included with standard Python installations.
 
 ## Features
 
-- 3D-Perspektive mit eigenem einfachen Renderer
-- Runder Tunnel mit stationaeren Begrenzungsringen
-- Kreisfoermige Tunnelbahn fuer mehr Bewegung im Raum
-- Kristalle, Asteroiden, Score, Combo, Leben und Boost-Energie
-- Tastatursteuerung mit `WASD` oder Pfeiltasten
+- 3D perspective with a custom lightweight renderer
+- Round tunnel with stationary boundary rings
+- Circular tunnel path for stronger spatial motion
+- Crystals, asteroids, score, combo, lives, and boost energy
+- Keyboard controls with `WASD` or arrow keys
 
-## Starten
+## Starting the Game
 
-Am einfachsten per Doppelklick:
+The easiest way is to double-click:
 
 ```bat
 start_spiel.bat
 ```
 
-Oder im Terminal:
+Or from a terminal:
 
 ```bat
 cd ...\Spiel
 start_spiel.bat
 ```
 
-Alternativ direkt mit Python:
+Alternatively, run it directly with Python:
 
 ```bat
 python spiel.py
 ```
 
-Falls `python` auf deinem Rechner nicht erkannt wird, installiere Python 3 von https://www.python.org/downloads/ und aktiviere beim Installer die Option `Add python.exe to PATH`.
+If `python` is not recognized on your computer, install Python 3 from https://www.python.org/downloads/ and enable the `Add python.exe to PATH` option in the installer.
 
-## Steuerung
+## Controls
 
-- `WASD` oder Pfeiltasten: Raumschiff steuern
-- `Space`: Boost
-- `R`: Neustart nach Game Over oder Sieg
-- `Esc`: Beenden
+- `WASD` or arrow keys: steer the spaceship
+- `Space`: boost
+- `R`: restart after game over or victory
+- `Esc`: quit
 
-## Ziel
+## Goal
 
-Sammle Kristalle, weiche Asteroiden aus und bringe den Nebelkurier bis Distanz 1400 durch den Tunnel.
+Collect crystals, dodge asteroids, and guide the Nebula Courier through the tunnel until you reach distance 1400.
 
-## Dateien
+## Files
 
-- `spiel.py`: Hauptcode des Spiels
-- `start_spiel.bat`: Startskript fuer Windows
-- `cover_nebula_courier_round_tunnel.png`: Cover-Bild mit rundem Tunnel
+- `spiel.py`: main game code
+- `start_spiel.bat`: Windows start script
+- `cover_nebula_courier_round_tunnel.png`: cover image with the round tunnel
