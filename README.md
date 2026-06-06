@@ -25,7 +25,7 @@ start_spiel.bat
 Oder im Terminal:
 
 ```bat
-cd C:\Users\anton\Desktop\Spiel
+cd ...\Spiel
 start_spiel.bat
 ```
 
