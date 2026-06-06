@@ -2,6 +2,8 @@
 
 ![Nebula Courier Cover](cover_nebula_courier_round_tunnel.png)
 
+(The entire game, including this readme file, is AI generated.)
+
 Nebula Courier ist ein kleines 3D-Arcade-Spiel in Python. Du fliegst mit einem Raumschiff durch einen runden Sci-Fi-Tunnel, der entlang einer Kreisbahn verlaeuft. Dabei sammelst du Kristalle, weichst Asteroiden aus und nutzt Boost, um schneller durch den Tunnel zu kommen.
 
 Das Spiel kommt ohne externe Python-Abhaengigkeiten aus. Es nutzt `tkinter`, das bei normalen Python-Installationen enthalten ist.
