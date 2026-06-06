@@ -10,10 +10,16 @@ HEIGHT = 720
 CENTER_X = WIDTH // 2
 CENTER_Y = HEIGHT // 2
 FOV = 520
-WORLD_X = 7.2
-WORLD_Y = 4.5
+TUNNEL_RADIUS = 5.0
 SPAWN_Z = 86.0
 NEAR_Z = 1.2
+CENTERLINE_RADIUS = 10.0
+CENTERLINE_TURN_RATE = 0.009
+RING_SEGMENTS = 24
+STAR_COUNT = 130
+RING_SPACING = 12.0
+RING_NEAR_Z = 4.5
+RING_FAR_Z = 98.0
 
 
 def clamp(value, low, high):
@@ -26,6 +32,19 @@ def blend(c1, c2, t):
     b = tuple(int(c2[i : i + 2], 16) for i in (1, 3, 5))
     out = tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
     return f"#{out[0]:02x}{out[1]:02x}{out[2]:02x}"
+
+
+def inside_tunnel(x, y, margin=0.0):
+    return x * x + y * y <= (TUNNEL_RADIUS - margin) ** 2
+
+
+RING_POINTS = [
+    (
+        math.cos(i * math.tau / RING_SEGMENTS) * TUNNEL_RADIUS,
+        math.sin(i * math.tau / RING_SEGMENTS) * TUNNEL_RADIUS,
+    )
+    for i in range(RING_SEGMENTS)
+]
 
 
 @dataclass
@@ -91,7 +110,7 @@ class NebulaRunner:
                 "z": random.uniform(4, 90),
                 "tw": random.random() * math.tau,
             }
-            for _ in range(180)
+            for _ in range(STAR_COUNT)
         ]
         for z in range(18, 88, 14):
             self.spawn_wave(float(z))
@@ -113,12 +132,46 @@ class NebulaRunner:
             return "space" if char == " " else char
         return event.keysym.lower()
 
-    def project(self, x, y, z):
+    def centerline_point(self, distance):
+        angle = distance * CENTERLINE_TURN_RATE
+        return (
+            math.sin(angle) * CENTERLINE_RADIUS,
+            math.cos(angle) * CENTERLINE_RADIUS,
+        )
+
+    def tunnel_curve(self, z):
+        if hasattr(self, "curve_origin"):
+            here_x, here_y = self.curve_origin
+        else:
+            here_x, here_y = self.centerline_point(self.distance)
+        ahead_x, ahead_y = self.centerline_point(self.distance + z)
+        return ahead_x - here_x, ahead_y - here_y
+
+    def project_with_curve(self, x, y, z, curve_x=0.0, curve_y=0.0):
         z = max(z, 0.05)
         scale = FOV / z
-        sx = CENTER_X + (x - self.player_x) * scale + self.draw_dx
-        sy = CENTER_Y + (y - self.player_y) * scale + self.draw_dy
+        sx = CENTER_X + (x + curve_x - self.player_x) * scale + self.draw_dx
+        sy = CENTER_Y + (y + curve_y - self.player_y) * scale + self.draw_dy
         return sx, sy, scale
+
+    def project(self, x, y, z, curved=True):
+        if curved:
+            curve_x, curve_y = self.tunnel_curve(z)
+            return self.project_with_curve(x, y, z, curve_x, curve_y)
+        return self.project_with_curve(x, y, z)
+
+    def stationary_ring_depths(self):
+        first_world_distance = math.floor((self.distance + RING_NEAR_Z) / RING_SPACING) * RING_SPACING
+        if first_world_distance < self.distance + RING_NEAR_Z:
+            first_world_distance += RING_SPACING
+
+        depths = []
+        world_distance = first_world_distance
+        far_world_distance = self.distance + RING_FAR_Z
+        while world_distance <= far_world_distance:
+            depths.append(world_distance - self.distance)
+            world_distance += RING_SPACING
+        return depths
 
     def loop(self):
         now = time.perf_counter()
@@ -148,8 +201,9 @@ class NebulaRunner:
         response = 1.0 - (0.0009 ** dt)
         self.vel_x += (target_vel_x - self.vel_x) * response
         self.vel_y += (target_vel_y - self.vel_y) * response
-        self.player_x = clamp(self.player_x + self.vel_x * dt, -WORLD_X + 0.7, WORLD_X - 0.7)
-        self.player_y = clamp(self.player_y + self.vel_y * dt, -WORLD_Y + 0.7, WORLD_Y - 0.7)
+        self.player_x += self.vel_x * dt
+        self.player_y += self.vel_y * dt
+        self.keep_player_in_tunnel()
 
         self.distance += self.speed * dt
         self.shake = max(0.0, self.shake - dt * 5)
@@ -197,9 +251,10 @@ class NebulaRunner:
             self.score += self.lives * 500
 
     def spawn_wave(self, z):
-        lanes_x = [-4.8, -2.4, 0.0, 2.4, 4.8]
-        lanes_y = [-2.5, 0.0, 2.5]
-        blocked = random.sample([(x, y) for x in lanes_x for y in lanes_y], k=random.randint(3, 5))
+        lanes_x = [-3.6, -1.8, 0.0, 1.8, 3.6]
+        lanes_y = [-3.6, -1.8, 0.0, 1.8, 3.6]
+        lanes = [(x, y) for x in lanes_x for y in lanes_y if inside_tunnel(x, y, 0.6)]
+        blocked = random.sample(lanes, k=random.randint(3, 5))
         for x, y in blocked:
             self.objects.append(
                 FlyingObject(
@@ -213,8 +268,9 @@ class NebulaRunner:
                 )
             )
         for _ in range(random.randint(4, 7)):
-            x = random.choice(lanes_x) + random.uniform(-0.25, 0.25)
-            y = random.choice(lanes_y) + random.uniform(-0.25, 0.25)
+            x, y = random.choice(lanes)
+            x += random.uniform(-0.25, 0.25)
+            y += random.uniform(-0.25, 0.25)
             self.objects.append(
                 FlyingObject(
                     "crystal",
@@ -227,10 +283,22 @@ class NebulaRunner:
                 )
             )
 
+    def keep_player_in_tunnel(self):
+        limit = TUNNEL_RADIUS - 0.7
+        dist = math.hypot(self.player_x, self.player_y)
+        if dist <= limit:
+            return
+        scale = limit / max(dist, 0.001)
+        self.player_x *= scale
+        self.player_y *= scale
+        self.vel_x *= 0.35
+        self.vel_y *= 0.35
+
     def draw(self):
         self.canvas.delete("all")
         self.draw_dx = random.uniform(-8, 8) * self.shake
         self.draw_dy = random.uniform(-5, 5) * self.shake
+        self.curve_origin = self.centerline_point(self.distance)
 
         self.draw_background()
         self.draw_tunnel()
@@ -258,38 +326,47 @@ class NebulaRunner:
             self.canvas.create_rectangle(0, i * HEIGHT / 18, WIDTH, (i + 1) * HEIGHT / 18, fill=color, outline="")
 
         for star in self.stars:
-            x, y, scale = self.project(star["x"], star["y"], star["z"])
+            x, y, scale = self.project(star["x"], star["y"], star["z"], curved=False)
             r = clamp(scale * 0.025, 0.7, 3.0)
             twinkle = 0.55 + 0.45 * math.sin(star["tw"])
             color = blend("#6da6ff", "#ffffff", twinkle)
             self.canvas.create_oval(x - r, y - r, x + r, y + r, fill=color, outline="")
 
     def draw_tunnel(self):
-        ring_zs = [((self.distance * 0.38 + offset) % 18) + 7 for offset in range(0, 88, 9)]
-        corners = [(-WORLD_X, -WORLD_Y), (WORLD_X, -WORLD_Y), (WORLD_X, WORLD_Y), (-WORLD_X, WORLD_Y)]
+        ring_zs = self.stationary_ring_depths()
 
         for z in sorted(ring_zs, reverse=True):
-            pts = [self.project(x, y, z)[:2] for x, y in corners]
+            curve_x, curve_y = self.tunnel_curve(z)
+            pts = []
+            for x, y in RING_POINTS:
+                sx, sy, _scale = self.project_with_curve(x, y, z, curve_x, curve_y)
+                pts.extend((sx, sy))
+            pts.extend(pts[:2])
             shade = 1.0 - clamp((z - 7) / 90, 0, 1)
             color = blend("#163151", "#43e4ff", shade)
             width = max(1, int(4 - z / 24))
-            for i in range(4):
-                x1, y1 = pts[i]
-                x2, y2 = pts[(i + 1) % 4]
-                self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width)
+            self.canvas.create_line(*pts, fill=color, width=width, smooth=True)
 
-        for x, y in corners:
-            near = self.project(x, y, 6)[:2]
-            far = self.project(x, y, 92)[:2]
-            self.canvas.create_line(*near, *far, fill="#224467", width=1)
+        z_path = [6, 11, 17, 24, 32, 42, 54, 68, 84, 96]
+        curve_cache = {z: self.tunnel_curve(z) for z in z_path}
+        for i in range(0, RING_SEGMENTS, 4):
+            x, y = RING_POINTS[i]
+            self.draw_curved_depth_line(x, y, z_path, curve_cache, "#224467", 1)
 
-        for x in [-4.8, -2.4, 0, 2.4, 4.8]:
-            near = self.project(x, -WORLD_Y, 6)[:2]
-            far = self.project(x, -WORLD_Y, 92)[:2]
-            self.canvas.create_line(*near, *far, fill="#142842", width=1)
-            near = self.project(x, WORLD_Y, 6)[:2]
-            far = self.project(x, WORLD_Y, 92)[:2]
-            self.canvas.create_line(*near, *far, fill="#142842", width=1)
+        for radius in [TUNNEL_RADIUS * 0.34, TUNNEL_RADIUS * 0.67]:
+            for i in range(0, RING_SEGMENTS, 8):
+                angle = i * math.tau / RING_SEGMENTS + self.distance * 0.01
+                x = math.cos(angle) * radius
+                y = math.sin(angle) * radius
+                self.draw_curved_depth_line(x, y, z_path, curve_cache, "#142842", 1)
+
+    def draw_curved_depth_line(self, x, y, z_values, curve_cache, color, width):
+        pts = []
+        for z in z_values:
+            curve_x, curve_y = curve_cache[z]
+            sx, sy, _scale = self.project_with_curve(x, y, z, curve_x, curve_y)
+            pts.extend((sx, sy))
+        self.canvas.create_line(*pts, fill=color, width=width, smooth=True)
 
     def draw_crystal(self, obj):
         x, y, scale = self.project(obj.x, obj.y, obj.z)
