@@ -4,7 +4,7 @@
 
 (The entire game, including this README file, is AI-generated.)
 
-Nebula Courier is a small 3D arcade game written in Python. You fly a spaceship through a round sci-fi tunnel that follows a circular path. Along the way, you collect crystals, dodge asteroids, and use boost to move faster through the tunnel.
+Nebula Courier is a small 3D arcade game written in Python. You fly a spaceship through a round sci-fi tunnel that follows a circular path. Along the way, you collect green and blue crystals, dodge asteroids, and use boost to move faster through the tunnel.
 
 The game has no external Python dependencies. It uses `tkinter`, which is included with standard Python installations.
 
@@ -13,7 +13,7 @@ The game has no external Python dependencies. It uses `tkinter`, which is includ
 - 3D perspective with a custom lightweight renderer
 - Round tunnel with stationary boundary rings
 - Circular tunnel path for stronger spatial motion
-- Crystals, asteroids, score, combo, lives, and boost energy
+- Green crystals, moving blue bonus crystals, asteroids, score, combo, lives, and boost energy
 - Keyboard controls with `WASD` or arrow keys
 
 ## Starting the Game
@@ -48,7 +48,7 @@ If `python` is not recognized on your computer, install Python 3 from https://ww
 
 ## Goal
 
-Collect crystals, dodge asteroids, and guide the Nebula Courier through the tunnel until you reach distance 1400.
+Collect green crystals, chase moving blue bonus crystals for extra points, dodge asteroids, and guide the Nebula Courier through the tunnel until you reach distance 1400.
 
 ## Files
 

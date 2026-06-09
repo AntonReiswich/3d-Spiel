@@ -57,6 +57,14 @@ class FlyingObject:
     rot: float
     spin: float
     collected: bool = False
+    home_x: float = 0.0
+    home_y: float = 0.0
+    move_radius: float = 0.0
+    move_phase: float = 0.0
+
+    def __post_init__(self):
+        self.home_x = self.x
+        self.home_y = self.y
 
 
 class NebulaRunner:
@@ -220,16 +228,22 @@ class NebulaRunner:
         for obj in self.objects:
             obj.z -= self.speed * dt
             obj.rot += obj.spin * dt
+            if obj.kind == "blue_crystal":
+                self.move_blue_crystal(obj)
             if obj.z < 3.0 and not obj.collected:
                 dx = obj.x - self.player_x
                 dy = obj.y - self.player_y
                 radius = obj.size + 0.45
                 if dx * dx + dy * dy < radius * radius:
-                    if obj.kind == "crystal":
+                    if obj.kind in {"crystal", "blue_crystal"}:
                         obj.collected = True
                         self.combo += 1
-                        self.score += 100 + self.combo * 25
-                        self.energy = min(100.0, self.energy + 12)
+                        if obj.kind == "blue_crystal":
+                            self.score += 250 + self.combo * 45
+                            self.energy = min(100.0, self.energy + 20)
+                        else:
+                            self.score += 100 + self.combo * 25
+                            self.energy = min(100.0, self.energy + 12)
                         self.flash = 0.35
                     else:
                         obj.collected = True
@@ -267,7 +281,7 @@ class NebulaRunner:
                     random.uniform(-2.8, 2.8),
                 )
             )
-        for _ in range(random.randint(4, 7)):
+        for _ in range(random.randint(3, 5)):
             x, y = random.choice(lanes)
             x += random.uniform(-0.25, 0.25)
             y += random.uniform(-0.25, 0.25)
@@ -282,6 +296,33 @@ class NebulaRunner:
                     random.uniform(2.0, 4.5),
                 )
             )
+        for _ in range(random.randint(1, 2)):
+            x, y = random.choice(lanes)
+            x += random.uniform(-0.2, 0.2)
+            y += random.uniform(-0.2, 0.2)
+            self.objects.append(
+                FlyingObject(
+                    "blue_crystal",
+                    x,
+                    y,
+                    z + random.uniform(-8, 13),
+                    random.uniform(0.36, 0.52),
+                    random.random() * math.tau,
+                    random.uniform(3.2, 5.4),
+                    move_radius=random.uniform(0.55, 1.05),
+                    move_phase=random.random() * math.tau,
+                )
+            )
+
+    def move_blue_crystal(self, obj):
+        obj.x = obj.home_x + math.cos(obj.rot + obj.move_phase) * obj.move_radius
+        obj.y = obj.home_y + math.sin(obj.rot * 0.8 + obj.move_phase) * obj.move_radius
+        limit = TUNNEL_RADIUS - 0.7
+        dist = math.hypot(obj.x, obj.y)
+        if dist > limit:
+            scale = limit / max(dist, 0.001)
+            obj.x *= scale
+            obj.y *= scale
 
     def keep_player_in_tunnel(self):
         limit = TUNNEL_RADIUS - 0.7
@@ -305,7 +346,7 @@ class NebulaRunner:
 
         for obj in sorted(self.objects, key=lambda item: item.z, reverse=True):
             if obj.z > NEAR_Z and not obj.collected:
-                if obj.kind == "crystal":
+                if obj.kind in {"crystal", "blue_crystal"}:
                     self.draw_crystal(obj)
                 else:
                     self.draw_asteroid(obj)
@@ -379,10 +420,17 @@ class NebulaRunner:
             (x, y + r * 1.5),
             (x - r * 0.9, y),
         ]
-        color = blend("#38ff6b", "#f5fff7", clamp((70 - obj.z) / 70, 0, 1))
-        self.canvas.create_polygon(points, fill=color, outline="#12d94f", width=2)
+        if obj.kind == "blue_crystal":
+            color = blend("#3c86ff", "#f4fbff", clamp((70 - obj.z) / 70, 0, 1))
+            outline = "#1f6fff"
+            glow = "#55a6ff"
+        else:
+            color = blend("#38ff6b", "#f5fff7", clamp((70 - obj.z) / 70, 0, 1))
+            outline = "#12d94f"
+            glow = "#3cff80"
+        self.canvas.create_polygon(points, fill=color, outline=outline, width=2)
         self.canvas.create_line(x, y - r * 1.5, x, y + r * 1.5, fill="#ffffff", width=1)
-        self.canvas.create_oval(x - r * 1.8, y - r * 1.8, x + r * 1.8, y + r * 1.8, outline="#3cff80")
+        self.canvas.create_oval(x - r * 1.8, y - r * 1.8, x + r * 1.8, y + r * 1.8, outline=glow)
 
     def draw_asteroid(self, obj):
         x, y, scale = self.project(obj.x, obj.y, obj.z)
