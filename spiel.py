@@ -379,10 +379,10 @@ class NebulaRunner:
             (x, y + r * 1.5),
             (x - r * 0.9, y),
         ]
-        color = blend("#43fff2", "#f9fdff", clamp((70 - obj.z) / 70, 0, 1))
-        self.canvas.create_polygon(points, fill=color, outline="#0bd2ff", width=2)
+        color = blend("#38ff6b", "#f5fff7", clamp((70 - obj.z) / 70, 0, 1))
+        self.canvas.create_polygon(points, fill=color, outline="#12d94f", width=2)
         self.canvas.create_line(x, y - r * 1.5, x, y + r * 1.5, fill="#ffffff", width=1)
-        self.canvas.create_oval(x - r * 1.8, y - r * 1.8, x + r * 1.8, y + r * 1.8, outline="#1a8dff")
+        self.canvas.create_oval(x - r * 1.8, y - r * 1.8, x + r * 1.8, y + r * 1.8, outline="#3cff80")
 
     def draw_asteroid(self, obj):
         x, y, scale = self.project(obj.x, obj.y, obj.z)
